@@ -1,0 +1,7 @@
+name = "ClimateDatasets"
+uuid = "57ad8bab-f6f8-48cd-9c24-8d5a3bf73d4f"
+authors = ["James Doss-Gollin <jdossgollin@rice.edu>"]
+version = "0.1.0"
+
+[deps]
+MustImplement = "e4e176d3-9c28-4018-96a0-d43fcc8f3cfb"

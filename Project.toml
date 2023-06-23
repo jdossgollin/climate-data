@@ -1,0 +1,8 @@
+[deps]
+ClimateDatasets = "57ad8bab-f6f8-48cd-9c24-8d5a3bf73d4f"
+CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
+GZip = "92fee26a-97fe-5a0c-ad85-20a5f3185b63"
+JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
+MustImplement = "e4e176d3-9c28-4018-96a0-d43fcc8f3cfb"
+Nexrad = "c37c7198-3db5-4444-a055-82c9074af085"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
