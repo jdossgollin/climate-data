@@ -2,50 +2,25 @@ using Dates
 using GZip
 using GRIBDatasets
 using NCDatasets
-using DataStructures
 
 using ClimateDatasets
+import ClimateDatasets: info, download_file, file_bounds, bounds, dims, directory
 
-# things to overwrite
-import ClimateDatasets:
-    info,
-    folder,
-    files,
-    files,
-    ensure_files,
-    read,
-    domain,
-    read,
-    filename,
-    get_dataset,
-    get_data
-
-struct TimeDomainSpec <: AbstractDomainSpec
-    time::Dates.DateTime
+struct NexradDataset <: ClimateDatasets.AbstractDataset
+    directory::String
 end
 
-struct TimeRangeDomainSpec <: AbstractDomainSpec
-    start_time::Dates.DateTime
-    end_time::Dates.DateTime
-end
+"""
+    info(dataset::NexradDataset)::Dict{Symbol, String}
 
-struct NexradDataFile <: AbstractDataFile
-    domain::TimeDomainSpec
-    filename::String
-end
-
-struct NexradDataset <: AbstractDataset
-    folder::String
-    function NexradDataset(folder::String)
-        if !isdir(folder)
-            mkpath(folder)  # creates the directory if it doesn't exist
-        end
-        return new(folder)
-    end
-end
-
-function info(ds::NexradDataset)
-    return Dict(:name => "Next-Generation Weather Radar (NEXRAD)")
+Returns a dictionary providing metadata about the dataset
+"""
+function info(dataset::NexradDataset)::Dict{Symbol,String}
+    return Dict(
+        :name => "NEXRAD",
+        :long_name => "Next-Generation Weather Radar",
+        :details => "MultiSensor_QPE_01H_Pass2 if available, GaugeCorr_QPE_01H if not",
+    )
 end
 
 function files(ds::NexradDataset)
@@ -80,23 +55,20 @@ end
 
 function parse_grib2(grib2_fname::String)
     gribds = GRIBDataset(grib2_fname)
-    prcp = gribds["unknown"][:, :, :]
+    precip = gribds["unknown"][:, :, :]
     lon = gribds["lon"][:]
     lat = gribds["lat"][:]
     time = gribds["valid_time"][:]
-    return prcp, lon, lat, time
+    return precip, lon, lat, time
 end
 
-function build_nc_file(
-    fname::String,
-    prcp::AbstractArray,
-    lon::AbstractVector,
-    lat::AbstractVector,
-    time::AbstractVector,
-)
+function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
+
+    # parse the input file
+    precip, lon, lat, time = parse_grib2(grib2_fname)
 
     # Create the netCDF4 file
-    ds = NCDatasets.Dataset(fname, "c")
+    ds = NCDatasets.Dataset(nc_fname, "c")
 
     # Define the dimensions of the netCDF4 file
     nc_lon = defDim(ds, "lon", length(lon))
@@ -109,7 +81,7 @@ function build_nc_file(
         "precip",
         Float64,
         ("lon", "lat", "time");
-        attrib=OrderedDict(
+        attrib=Dict(
             "long_name" => "Precipitation",
             "units" => "Millimeters per Hour",
             "Source" => Nexrad.get_varname(first(time)),
@@ -117,7 +89,7 @@ function build_nc_file(
     )
 
     # assign the variables
-    nc_prcp[:, :, :] = prcp
+    nc_prcp[:, :, :] = precip
     nc_lon = lon
     nc_lat = lat
     nc_time = time
@@ -126,13 +98,13 @@ function build_nc_file(
     return close(ds)
 end
 
-function produce_file(dt::DateTime, fname::AbstractString)
-    
+function produce_file(dt::DateTime, nc_fname::AbstractString)
+
     # get the filenames
-    path = Dates.format(dt, "yyyymmdd-H-M")
-    mkpath(path)
-    gz_fname = joinpath(path, get_gz_fname(dt))
-    grib2_fname = joinpath(path, get_grib2_fname(dt))
+    tmpdir = Dates.format(dt, "yyyymmdd-H-M")
+    mkpath(tmpdir)
+    gz_fname = joinpath(tmpdir, get_gz_fname(dt))
+    grib2_fname = joinpath(tmpdir, get_grib2_fname(dt))
 
     # produce the file
     get_gz_file(dt, gz_fname)
@@ -140,14 +112,11 @@ function produce_file(dt::DateTime, fname::AbstractString)
     # unzip
     gunzip_file(gz_fname, grib2_fname)
 
-    # parse
-    prcp, lon, lat, time = parse_grib2(grib2_fname)
-
     # convert to netcdf
-    build_nc_file(fname, prcp, lon, lat, time)
+    grib2_to_nc(grib2_fname, nc_fname)
 
     # cleanup
-    rm(path, recursive=true)
+    rm(tmpdir; recursive=true)
 
     return true
 end

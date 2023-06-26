@@ -2,20 +2,20 @@ module ClimateDatasets
 
 include("core.jl")
 
-export AbstractDomainSpec,
-    AbstractDataFile,
-    AbstractDataset,
-    Data_Manager,
-    info,
-    folder,
-    files,
-    files,
-    ensure_files,
-    read,
-    domain,
-    read,
-    filename,
-    get_dataset,
-    get_data
+export AbstractDataset,
+    Bound,
+    directory,
+    dims,
+    bounds,
+    file_bounds,
+    filename_to_bounds,
+    bounds_to_filename,
+    get_filename,
+    get_file_list,
+    check_file_existence,
+    download_file,
+    build,
+    info
 
-end # module ClimateDatasets
+end
+# module ClimateDatasets
