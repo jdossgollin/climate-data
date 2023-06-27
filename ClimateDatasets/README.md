@@ -2,69 +2,60 @@
 
 ## Using
 
-Use this structure to add new datasets to our collection.
-To create a concrete subtype of `AbstractClimateDataset`, the following methods must be implemented:
+To create a custom dataset, you need to define your dataset as a subtype of `AbstractDataset` and import the following functions:
 
-- `directory(dataset::YourDatasetType)`: This method should return a string representing the directory path where the dataset files are stored.
+```julia
+import ClimateDatasets: AbstractDataset, info, file_extension, bounds, file_bounds, download_file
 
-    Example:
+struct MyDataset <: AbstractDataset
+    # ...
+end
+```
 
-    ```julia
-    function directory(dataset::YourDatasetType)
-        return "/path/to/your/dataset"
-    end
-    ```
+Then you need to define the following methods:
 
-- `dims(dataset::YourDatasetType)`: This method should return a vector of symbols representing the dimensions along which the data is subset.
+```julia
+"""
+    info(dataset::AbstractDataset)::Dict{Symbol, String}
 
-    Example:
+Returns a dictionary providing metadata about the dataset
+"""
+info(dataset::AbstractDataset) = Dict{Symbol, String}()
+```
 
-    ```julia
-    function dims(dataset::YourDatasetType)
-        return [:time, :latitude, :longitude]
-    end
-    ```
+```julia
+"""
+    file_extension(dataset::AbstractDataset)::AbstractString
 
-- `bounds(dataset::YourDatasetType)`: This method should return a dictionary mapping symbols (representing dimensions) to `Bound` objects (representing the bounds for each dimension).
+Return the file extension for the given dataset.
+"""
+file_extension(::AbstractDataset) = error("Not Implemented")
+```
 
-    Example:
+```julia
+"""
+    bounds(dataset::AbstractDataset)::Dict{Symbol, Bound}
 
-    ```julia
-    function bounds(dataset::YourDatasetType)
-        return Dict(:time => Bound(Date(2001,1,1), Date(2010,12,31)), :latitude => Bound(-90.0, 90.0), :longitude => Bound(-180.0, 180.0))
-    end
-    ```
+Returns the bounds for each dimension of the data.
+"""
+bounds(::AbstractDataset) = error("Not Implemented")
+```
 
-- `file_bounds(dataset::YourDatasetType)`: This method should return a vector of dictionaries, each representing the bounds of a specific file in the dataset.
+```julia
+"""
+    file_bounds(dataset::AbstractDataset)::Vector{Dict{Symbol, Bound}}
 
-    Example:
+Returns a collection of file-specific bounds for the given dataset.
+"""
+file_bounds(::AbstractDataset) = error("Not Implemented")
+```
 
-    ```julia
-    function file_bounds(dataset::YourDatasetType)
-        return [Dict(:time => Bound(Date(2001,1,1), Date(2001,12,31)), :latitude => Bound(-90.0, 90.0), :longitude => Bound(-180.0, 180.0)), Dict(:time => Bound(Date(2002,1,1), Date(2002,12,31)), :latitude => Bound(-90.0, 90.0), :longitude => Bound(-180.0, 180.0))]
-    end
-    ```
+```julia
+"""
+    download_file(dataset::AbstractDataset, filename::AbstractString)::Bool
 
-- `download_file(dataset::YourDatasetType, filename::AbstractString)`: This method should handle the downloading of a file, given by its filename, to the dataset directory.
-
-    Example:
-
-    ```julia
-    function download_file(dataset::YourDatasetType, filename::AbstractString)
-        # Your download logic here
-    end
-    ```
-
-- `info(dataset::YourDatasetType)`: This method provides a `Dict` containing useful information about your dataset
-
-    Example:
-
-    ```julia
-    function info(dataset::YourDatasetType)
-        Dict(
-            :name => "Your Dataset Name",
-            :long_name => "Your Dataset Long Name",
-            :description => "Your Dataset Description",
-        )
-    end
-    ```
+Downloads a file with the given filename to the dataset directory. 
+The filename encodes the file bounds information.
+"""
+download_file(::AbstractDataset, ::AbstractString) = error("Not Implemented")
+```

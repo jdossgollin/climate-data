@@ -4,56 +4,42 @@ using GRIBDatasets
 using NCDatasets
 
 using ClimateDatasets
-import ClimateDatasets: info, download_file, file_bounds, bounds, dims, directory
-
-struct NexradDataset <: ClimateDatasets.AbstractDataset
-    directory::String
-end
 
 """
-    info(dataset::NexradDataset)::Dict{Symbol, String}
+    gunzip_file(input_file::AbstractString, output_file::AbstractString)
 
-Returns a dictionary providing metadata about the dataset
+Unzip a gzipped file and save it with the given filename.
+
+# Arguments
+- `input_file`: The name of the gzipped input file.
+- `output_file`: The name of the output file to save the unzipped data to.
 """
-function info(dataset::NexradDataset)::Dict{Symbol,String}
-    return Dict(
-        :name => "NEXRAD",
-        :long_name => "Next-Generation Weather Radar",
-        :details => "MultiSensor_QPE_01H_Pass2 if available, GaugeCorr_QPE_01H if not",
-    )
-end
-
-function files(ds::NexradDataset)
-    return [
-        NexradDataFile(TimeDomainSpec(time), joinpath(folder(ds), get_nc_filename(time)))
-        for time in time_range()
-    ]
-end
-
-function files(ds::NexradDataset, domain_spec::TimeRangeDomainSpec)
-    valid_files = NexradDataFile[]
-    for time in (domain_spec.start_time):Dates.Hour(1):(domain_spec.end_time)
-        if time in MISSING_SNAPSHOTS
-            @warn "No data available for the specified time: $(time)"
-        else
-            push!(
-                valid_files,
-                NexradDataFile(
-                    TimeDomainSpec(time), joinpath(ds.folder, get_filename(time))
-                ),
-            )
+function gunzip_file(input_file::AbstractString, output_file::AbstractString)
+    isfile(output_file) && rm(output_file)
+    GZip.open(input_file, "r") do io
+        open(output_file, "w") do out
+            write(out, GZip.read(io))
         end
     end
-    return valid_files
 end
 
-function get_gz_file(dt::DateTime, fname::AbstractString)
+"""
+    get_gz_file(dt::Dates.DateTime, fname::AbstractString) -> Bool
+
+Download a gzipped file for the given `DateTime` and save it with the given filename.
+"""
+function get_gz_file(dt::Dates.DateTime, fname::AbstractString)
     url = get_url(dt)
     !isfile(fname) && download(url, fname)
     return true
 end
 
-function parse_grib2(grib2_fname::String)
+"""
+    parse_grib2(grib2_fname::AbstractString) -> Tuple{Array{Float64, 3}, Array{Float64, 1}, Array{Float64, 1}, Array{Dates.DateTime, 1}}
+
+Parse a GRIB2 file and return the precipitation data, longitude, latitude, and time.
+"""
+function parse_grib2(grib2_fname::AbstractString)
     gribds = GRIBDataset(grib2_fname)
     precip = gribds["unknown"][:, :, :]
     lon = gribds["lon"][:]
@@ -62,6 +48,11 @@ function parse_grib2(grib2_fname::String)
     return precip, lon, lat, time
 end
 
+"""
+    grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString) -> Bool
+
+Convert a GRIB2 file to a netCDF file and save it with the given filename.
+"""
 function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
 
     # parse the input file
@@ -98,43 +89,45 @@ function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
     return close(ds)
 end
 
-function produce_file(dt::DateTime, nc_fname::AbstractString)
+"""
+    produce_snapshot(ds::NCDatasets.Dataset, dt::Dates.DateTime, nc_fname::AbstractString) -> Bool
+
+Produce a snapshot of the given `Dataset` at the given `DateTime` and save it as a netCDF file with the given filename.
+"""
+function produce_snapshot(ds::AbstractDataset, dt::Dates.DateTime, nc_fname::AbstractString)
 
     # get the filenames
-    tmpdir = Dates.format(dt, "yyyymmdd-H-M")
+    tmpdir = joinpath(directory(ds), Dates.format(dt, Dates.ISODateTimeFormat))
     mkpath(tmpdir)
-    gz_fname = joinpath(tmpdir, get_gz_fname(dt))
-    grib2_fname = joinpath(tmpdir, get_grib2_fname(dt))
+    gz_fname = joinpath(tmpdir, "data.grib2.nc")
+    grib2_fname = joinpath(tmpdir, "data.grib2")
 
-    # produce the file
-    get_gz_file(dt, gz_fname)
+    # Download the file
+    try
+        get_gz_file(dt, gz_fname)
+    catch e
+        rm(tmpdir; recursive=true)
+        return false
+    end
 
-    # unzip
-    gunzip_file(gz_fname, grib2_fname)
+    # Unzip the file
+    try
+        gunzip_file(gz_fname, grib2_fname)
+    catch e
+        rm(tmpdir; recursive=true)
+        return false
+    end
 
-    # convert to netcdf
-    grib2_to_nc(grib2_fname, nc_fname)
+    # Convert to netCDF
+    try
+        grib2_to_nc(grib2_fname, nc_fname)
+    catch e
+        rm(tmpdir; recursive=true)
+        return false
+    end
 
     # cleanup
     rm(tmpdir; recursive=true)
 
     return true
 end
-
-function ensure_files(ds::NexradDataset, domain_spec::TimeRangeDomainSpec)
-    needed_files = files(ds, domain_spec)
-    for file in needed_files
-        if !isfile(file.file_path)
-            produce_file(get_url(file.domain.time), file.file_path)
-        end
-    end
-    return needed_files
-end
-
-function read(ds::NexradDataset, domain_spec::TimeRangeDomainSpec)
-    files = files(ds, domain_spec)
-    return [read_data(file) for file in files]
-end
-
-domain(file::NexradDataFile) = file.domain
-read(file::NexradDataFile) = read_data(file.file_path)

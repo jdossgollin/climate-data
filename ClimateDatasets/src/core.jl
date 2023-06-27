@@ -1,5 +1,6 @@
 using Dates
 using OrderedCollections: OrderedDict
+using ProgressMeter
 
 import Base: string
 using Base.Threads
@@ -95,11 +96,18 @@ function Bound(bound_str::AbstractString)
 end
 
 """
+    directory(dataset::AbstractDataset)::AbstractString
+
+Returns the directory where the dataset files are stored.
+"""
+directory(ds::AbstractDataset) = getproperty(ds, :directory)
+
+"""
     info(dataset::AbstractDataset)::Dict{Symbol, String}
 
 Returns a dictionary providing metadata about the dataset
 """
-info(dataset::AbstractDataset)::Dict{Symbol,String} = error("Not Implemented")
+info(dataset::AbstractDataset) = Dict{Symbol, String}()
 
 """
     file_extension(dataset::AbstractDataset)
@@ -109,32 +117,26 @@ Return the file extension for the given dataset.
 file_extension(::AbstractDataset) = error("Not Implemented")
 
 """
-    directory(dataset::AbstractDataset)::AbstractString
-
-Returns the directory where the dataset files are stored.
-"""
-directory(::AbstractDataset) = error("Not Implemented")
-
-"""
-    dims(dataset::AbstractDataset)::Vector{Symbol}
-
-Returns the dimensions along which the data is subset.
-"""
-dims(::AbstractDataset)::Vector{Symbol} = error("Not Implemented")
-
-"""
     bounds(dataset::AbstractDataset)::Dict{Symbol, Bound}
 
 Returns the bounds for each dimension of the data.
 """
-bounds(::AbstractDataset)::Dict{Symbol,Bound} = error("Not Implemented")
+bounds(::AbstractDataset) = error("Not Implemented")
 
 """
     file_bounds(dataset::AbstractDataset)::Vector{Dict{Symbol, Bound}}
 
 Returns a collection of file-specific bounds for the given dataset.
 """
-file_bounds(::AbstractDataset)::Vector{Dict{Symbol,Bound}} = error("Not Implemented")
+file_bounds(::AbstractDataset) = error("Not Implemented")
+
+"""
+    download_file(dataset::AbstractDataset, filename::AbstractString)
+
+Downloads a file with the given filename to the dataset directory. 
+The filename encodes the file bounds information.
+"""
+download_file(::AbstractDataset, ::AbstractString) = error("Not Implemented")
 
 """
     remove_file_extension(filename::AbstractString)
@@ -172,13 +174,14 @@ end
 
 Takes in the bounds of the file and returns the filename.
 """
-function bounds_to_filename(dataset::AbstractDataset, file_bounds::Dict{Symbol,Bound})
-    
+function bounds_to_filename(
+    dataset::AbstractDataset, file_bounds::Dict{Symbol,Bound{T}}
+) where {T}
     dimension_strs = String[]
-    
+
     # we have to sort the bounds so that the filename is always the same
     file_bounds = sort(OrderedDict(file_bounds))
-    
+
     for (dim, bound) in file_bounds
         part = string(dim) * "=" * string(bound)
         push!(dimension_strs, part)
@@ -191,7 +194,7 @@ end
 
 Generates a filename based on the dataset's specific file bound.
 """
-function get_filename(dataset::AbstractDataset, file_bound::Dict{Symbol,Bound})
+function get_filename(dataset::AbstractDataset, file_bound::Dict{Symbol,Bound{T}}) where {T}
     return bounds_to_filename(dataset, file_bound)
 end
 
@@ -219,14 +222,6 @@ function check_file_existence(dataset::AbstractDataset, filename::AbstractString
 end
 
 """
-    download_file(dataset::AbstractDataset, filename::AbstractString)
-
-Downloads a file with the given filename to the dataset directory. 
-The filename encodes the file bounds information.
-"""
-download_file(::AbstractDataset, ::AbstractString) = error("Not Implemented")
-
-"""
     build(dataset::AbstractDataset; parallel::Bool=true)
 
 Builds the complete dataset, downloading any missing files. This function can run in 
@@ -234,14 +229,16 @@ multithreaded mode if the `parallel` argument is set to true.
 """
 function build(dataset::AbstractDataset; parallel::Bool=true)
     files = get_file_list(dataset)
+    N = length(files)
     if parallel
-        @threads for filename in files
+        @threads for i in 1:N
+            filename = files[i]
             if !check_file_existence(dataset, filename)
                 download_file(dataset, filename)
             end
         end
     else
-        for filename in files
+        @showprogress for filename in files
             if !check_file_existence(dataset, filename)
                 download_file(dataset, filename)
             end
