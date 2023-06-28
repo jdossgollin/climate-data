@@ -1,4 +1,5 @@
 using Dates
+using OrderedCollections: OrderedDict
 
 import ClimateDatasets:
     info,
@@ -87,14 +88,24 @@ bounds(dataset::NexradDataset) = dataset.bounds
 
 Return a dictionary containing information about the `NexradDataset`.
 """
-info(dataset::NexradDataset)::Dict{Symbol,String} = Dict(
-    :name => "NEXRAD",
-    :long_name => "Next-Generation Weather Radar",
-    :details => "MultiSensor_QPE_01H_Pass2 from $MULTISENSOR_BEGINTIME, GaugeCorr_QPE_01H from $GAUGECORR_BEGINTIME",
-    :start_date => string(dataset.bounds[:time].min),
-    :end_date => string(dataset.bounds[:time].max),
-    :directory => directory(dataset),
-)
+function info(dataset::NexradDataset)::OrderedDict{Symbol,String}
+    return OrderedDict{Symbol,String}(
+        :name => "NEXRAD",
+        :long_name => "Next-Generation Weather Radar",
+        :description => join(
+            [
+                "Precipitation in millimeters (cumulative for one hour).",
+                "Data comes from the MultiSensor_QPE_01H_Pass2 datsaet after $MULTISENSOR_BEGINTIME,",
+                "and GaugeCorr_QPE_01H from $GAUGECORR_BEGINTIME;",
+                "this is a gauge-corrected radar dataset.",
+            ],
+            " ",
+        ),
+        :directory => directory(dataset),
+        :start_date => string(dataset.bounds[:time].min),
+        :end_date => string(dataset.bounds[:time].max),
+    )
+end
 
 """
     file_bounds(dataset::NexradDataset) -> Vector{Dict{Symbol, ClimateDatasets.Bound}}

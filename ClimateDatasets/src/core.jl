@@ -12,6 +12,8 @@ Abstract type representing a climate dataset.
 """
 abstract type AbstractDataset end
 
+const BOUND_TYPES = Union{Date,DateTime,AbstractFloat,AbstractString,Int}
+
 """
     Bound{T}
 
@@ -26,8 +28,7 @@ struct Bound{T}
         if isnothing(max)
             max = min
         end
-        valid_types = Union{Date,DateTime,AbstractFloat,AbstractString,Int}
-        if !(isa(min, valid_types) && isa(max, valid_types))
+        if !(isa(min, BOUND_TYPES) && isa(max, BOUND_TYPES))
             throw("Bound must be of type $valid_types")
         end
         return new{T}(min, max)
@@ -35,11 +36,11 @@ struct Bound{T}
 end
 
 """
-string(bound::Bound)
+string(bound::Bound)::String
 
 Converts a Bound instance to a string.
 """
-function string(bound::Bound)
+function string(bound::Bound)::String
     if bound.min == bound.max
         return string(bound.min)
     else
@@ -53,27 +54,35 @@ end
 Tries to parse bound_str into a DateTime, Date, Int, Float64 or leaves it as a String.
 Returns the parsed value and the original string representation.
 """
-function parse_bound(bound_str::AbstractString)
+function parse_bound(bound_str::AbstractString)::BOUND_TYPES
     n_dashes = sum([char == '-' for char in bound_str])
+
+    # if there are dashes, it's probably a date
     if n_dashes >= 2
         try
-            return DateTime(bound_str, Dates.ISODateTimeFormat)
+            # try a Date first
+            return Date(bound_str, Dates.ISODateFormat)
         catch
             try
-                return Date(bound_str, Dates.ISODateFormat)
+                # if that doesn't work, try a DateTime
+                return DateTime(bound_str, Dates.ISODateTimeFormat)
             catch
-                pass
+                # if that doesn't work, default to a string
+                return bound_str
             end
         end
-    end
-
-    try
-        return parse(Int, bound_str)
-    catch
+    else
         try
-            return parse(Float64, bound_str)
+            # if there aren't dashes, try an integer
+            return parse(Int, bound_str)
         catch
-            return bound_str
+            try
+                # if that doesn't work, try a float
+                return parse(Float64, bound_str)
+            catch
+                # finally, assume a string
+                return bound_str
+            end
         end
     end
 end
@@ -103,11 +112,11 @@ Returns the directory where the dataset files are stored.
 directory(ds::AbstractDataset) = getproperty(ds, :directory)
 
 """
-    info(dataset::AbstractDataset)::Dict{Symbol, String}
+    info(dataset::AbstractDataset)::OrderedDict{Symbol, String}
 
 Returns a dictionary providing metadata about the dataset
 """
-info(dataset::AbstractDataset) = Dict{Symbol, String}()
+info(dataset::AbstractDataset) = OrderedDict{Symbol,String}()
 
 """
     file_extension(dataset::AbstractDataset)
@@ -227,21 +236,19 @@ end
 Builds the complete dataset, downloading any missing files. This function can run in 
 multithreaded mode if the `parallel` argument is set to true.
 """
-function build(dataset::AbstractDataset; parallel::Bool=true)
-    files = get_file_list(dataset)
-    N = length(files)
-    if parallel
-        @threads for i in 1:N
-            filename = files[i]
-            if !check_file_existence(dataset, filename)
-                download_file(dataset, filename)
-            end
-        end
-    else
-        @showprogress for filename in files
-            if !check_file_existence(dataset, filename)
-                download_file(dataset, filename)
-            end
+function build(dataset::AbstractDataset)
+    filenames = Set(get_file_list(dataset))
+    N = length(filenames)
+    filenames_needed = [
+        filename for filename in filenames if !check_file_existence(dataset, filename)
+    ]
+    N_need = length(filenames_needed)
+    if N_need >= 1
+        @info "Out of $N files, $(N - N_need) are available. Downloading the rest..."
+        p = Progress(length(filenames_needed))
+        @showprogress for filename in filenames_needed
+            download_file(dataset, filename)
+            next!(p)
         end
     end
 end

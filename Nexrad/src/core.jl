@@ -99,7 +99,7 @@ function produce_snapshot(ds::AbstractDataset, dt::Dates.DateTime, nc_fname::Abs
     # get the filenames
     tmpdir = joinpath(directory(ds), Dates.format(dt, Dates.ISODateTimeFormat))
     mkpath(tmpdir)
-    gz_fname = joinpath(tmpdir, "data.grib2.nc")
+    gz_fname = joinpath(tmpdir, "data.grib2.gz")
     grib2_fname = joinpath(tmpdir, "data.grib2")
 
     # Download the file
