@@ -48,7 +48,7 @@ struct NexradDataset <: ClimateDatasets.AbstractDataset
     bounds::Dict{Symbol,ClimateDatasets.Bound}
 
     function NexradDataset(
-        directory::String;
+        directory::String,
         start_date::DateTime=GAUGECORR_BEGINTIME,
         end_date::DateTime=Dates.DateTime(Dates.today()) - Day(14),
     )

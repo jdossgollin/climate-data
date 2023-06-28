@@ -69,15 +69,15 @@ function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
     # add the precipitation data
     nc_prcp = defVar(
         ds,
-        "precip",
-        Float64,
-        ("lon", "lat", "time");
+        "precip", # variable name
+        Float64, # format
+        ("lon", "lat", "time"); # dimension names
         attrib=Dict(
             "long_name" => "Precipitation",
             "units" => "Millimeters per Hour",
             "Source" => Nexrad.get_varname(first(time)),
         ),
-        deflatelevel=9,
+        deflatelevel=9, # provides maximum compression
     )
 
     # assign the variables
