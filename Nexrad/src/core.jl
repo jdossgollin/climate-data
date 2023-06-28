@@ -59,7 +59,7 @@ function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
     precip, lon, lat, time = parse_grib2(grib2_fname)
 
     # Create the netCDF4 file
-    ds = NCDatasets.Dataset(nc_fname, "c")
+    ds = NCDatasets.Dataset(nc_fname, "c"; format=:netcdf4)
 
     # Define the dimensions of the netCDF4 file
     nc_lon = defDim(ds, "lon", length(lon))
@@ -77,6 +77,7 @@ function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
             "units" => "Millimeters per Hour",
             "Source" => Nexrad.get_varname(first(time)),
         ),
+        deflatelevel=9,
     )
 
     # assign the variables
