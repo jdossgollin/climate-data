@@ -44,21 +44,18 @@ end
 Create a new `NexradDataset` object with the given directory, start date, end date.
 """
 struct NexradDataset <: ClimateDatasets.AbstractDataset
-    directory::String
+    datadir::String
     bounds::Dict{Symbol,ClimateDatasets.Bound}
 
     function NexradDataset(
-        directory::String,
+        datadir::String;
         start_date::DateTime=GAUGECORR_BEGINTIME,
         end_date::DateTime=Dates.DateTime(Dates.today()) - Day(14),
     )
         check_valid_dates(start_date, end_date)
-
         bounds = Dict{Symbol,ClimateDatasets.Bound}()
         bounds[:time] = ClimateDatasets.Bound(start_date, end_date)
-
-        !isdir(directory) && mkpath(directory)
-        return new(directory, bounds)
+        return new(datadir, bounds)
     end
 end
 
@@ -133,6 +130,6 @@ Download the file with the given filename for the given `NexradDataset`.
 function download_file(dataset::NexradDataset, filename::AbstractString)
     bounds = ClimateDatasets.filename_to_bounds(dataset, filename)
     snapshot_time = bounds[:time].min
-    absolute_file_name = joinpath(dataset.directory, filename)
+    absolute_file_name = joinpath(directory(dataset), filename)
     return produce_snapshot(dataset, snapshot_time, absolute_file_name)
 end

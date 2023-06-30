@@ -107,9 +107,14 @@ end
 """
     directory(dataset::AbstractDataset)::AbstractString
 
-Returns the directory where the dataset files are stored.
+Returns the directory where the dataset files are stored. If
+it does not exist, builds the directory.
 """
-directory(ds::AbstractDataset) = getproperty(ds, :directory)
+function directory(ds::AbstractDataset)
+    dirname = getproperty(ds, :datadir)
+    !isdir(dirname) && mkpath(dirname)
+    return dirname
+end
 
 """
     info(dataset::AbstractDataset)::OrderedDict{Symbol, String}
@@ -245,8 +250,8 @@ function build(dataset::AbstractDataset)
     N_need = length(filenames_needed)
     if N_need >= 1
         @info "Out of $N files, $(N - N_need) are available. Downloading the rest..."
-        p = Progress(length(filenames_needed))
-        @showprogress for filename in filenames_needed
+        p = Progress(N_need)
+        for filename in filenames_needed
             download_file(dataset, filename)
             next!(p)
         end
