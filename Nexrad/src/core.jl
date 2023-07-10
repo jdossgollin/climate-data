@@ -69,15 +69,15 @@ function grib2_to_nc(grib2_fname::AbstractString, nc_fname::AbstractString)
     # add the precipitation data
     nc_prcp = defVar(
         ds,
-        "precip",
-        Float64,
-        ("lon", "lat", "time");
+        "precip", # variable name
+        Float64, # format
+        ("lon", "lat", "time"); # dimension names
         attrib=Dict(
             "long_name" => "Precipitation",
             "units" => "Millimeters per Hour",
             "Source" => Nexrad.get_varname(first(time)),
         ),
-        deflatelevel=9,
+        deflatelevel=9, # provides maximum compression
     )
 
     # assign the variables
@@ -100,7 +100,7 @@ function produce_snapshot(ds::AbstractDataset, dt::Dates.DateTime, nc_fname::Abs
     # get the filenames
     tmpdir = joinpath(directory(ds), Dates.format(dt, Dates.ISODateTimeFormat))
     mkpath(tmpdir)
-    gz_fname = joinpath(tmpdir, "data.grib2.nc")
+    gz_fname = joinpath(tmpdir, "data.grib2.gz")
     grib2_fname = joinpath(tmpdir, "data.grib2")
 
     # Download the file

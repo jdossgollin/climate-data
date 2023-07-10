@@ -2,7 +2,7 @@
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "e13e0d0a8a9279932fb5e5bb74b4994c34300b09"
+project_hash = "e40d87cc9ebd18d00a0279c5f6c039e509b84e9a"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
@@ -317,7 +317,7 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 version = "1.2.0"
 
 [[deps.Nexrad]]
-deps = ["ClimateDatasets", "DataStructures", "Dates", "FileIO", "GRIBDatasets", "GZip", "NCDatasets"]
+deps = ["ClimateDatasets", "DataStructures", "Dates", "FileIO", "GRIBDatasets", "GZip", "NCDatasets", "OrderedCollections"]
 path = "Nexrad"
 uuid = "c37c7198-3db5-4444-a055-82c9074af085"
 version = "0.1.0"

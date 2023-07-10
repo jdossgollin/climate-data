@@ -3,14 +3,13 @@ using Nexrad
 
 using Dates
 
-RDF_FOLDER = "data" # only the Doss-Gollin Group will be able to access this!
+RDF_FOLDER = "/home/jd82/RDF/jd82" # only the Doss-Gollin Group will be able to access this!
 
-datasets = [
-    NexradDataset(joinpath(RDF_FOLDER, "NEXRAD")),
-]
+# define the datasets to use
+datasets = [NexradDataset(joinpath(RDF_FOLDER, "NEXRAD"))]
 
 for ds in datasets
+    @info "Building dataset..."
     display(info(ds))
-    #buidl(ds; parallel=false)
+    build(ds)
 end
-
