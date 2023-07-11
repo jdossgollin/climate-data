@@ -95,13 +95,19 @@ end
 
 Produce a snapshot of the given `Dataset` at the given `DateTime` and save it as a netCDF file with the given filename.
 """
-function produce_snapshot(ds::AbstractDataset, dt::Dates.DateTime, nc_fname::AbstractString)
+function produce_snapshot(
+    ds::AbstractDataset, dt::Dates.DateTime, nc_fname::AbstractString
+)::Bool
 
     # get the filenames
-    tmpdir = joinpath(directory(ds), Dates.format(dt, Dates.ISODateTimeFormat))
+    fmt = "yyyy-mm-dd-HH" # a consistent format to use
+    tmpdir = joinpath(directory(ds), Dates.format(dt, fmt))
+
     mkpath(tmpdir)
-    gz_fname = joinpath(tmpdir, "data.grib2.gz")
-    grib2_fname = joinpath(tmpdir, "data.grib2")
+
+    fname = Dates.format(dt, fmt)
+    gz_fname = joinpath(tmpdir, fname * ".grib2.gz")
+    grib2_fname = joinpath(tmpdir, fname * ".grib2")
 
     # Download the file
     try

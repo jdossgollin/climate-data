@@ -24,8 +24,8 @@ function check_valid_dates(start_date::DateTime, end_date::DateTime)
         error("Start date should not be before $GAUGECORR_BEGINTIME.")
     end
 
-    if end_date > Dates.now() - Day(14)
-        error("End date should be at least 14 days before today.")
+    if end_date > Dates.now() - Day(2)
+        error("End date should be at least 2 days before today.")
     end
 
     if Dates.minute(start_date) != 0 ||
@@ -50,7 +50,7 @@ struct NexradDataset <: ClimateDatasets.AbstractDataset
     function NexradDataset(
         datadir::String;
         start_date::DateTime=GAUGECORR_BEGINTIME,
-        end_date::DateTime=Dates.DateTime(Dates.today()) - Day(14),
+        end_date::DateTime=Dates.DateTime(Dates.today()) - Day(2),
     )
         check_valid_dates(start_date, end_date)
         bounds = Dict{Symbol,ClimateDatasets.Bound}()
@@ -127,7 +127,7 @@ end
 
 Download the file with the given filename for the given `NexradDataset`.
 """
-function download_file(dataset::NexradDataset, filename::AbstractString)
+function download_file(dataset::NexradDataset, filename::AbstractString)::Bool
     bounds = ClimateDatasets.filename_to_bounds(dataset, filename)
     snapshot_time = bounds[:time].min
     absolute_file_name = joinpath(directory(dataset), filename)

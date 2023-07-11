@@ -145,12 +145,12 @@ Returns a collection of file-specific bounds for the given dataset.
 file_bounds(::AbstractDataset) = error("Not Implemented")
 
 """
-    download_file(dataset::AbstractDataset, filename::AbstractString)
+    download_file(dataset::AbstractDataset, filename::AbstractString)::Bool
 
 Downloads a file with the given filename to the dataset directory. 
 The filename encodes the file bounds information.
 """
-download_file(::AbstractDataset, ::AbstractString) = error("Not Implemented")
+download_file(::AbstractDataset, ::AbstractString)::Bool = error("Not Implemented")
 
 """
     remove_file_extension(filename::AbstractString)
@@ -236,24 +236,53 @@ function check_file_existence(dataset::AbstractDataset, filename::AbstractString
 end
 
 """
-    build(dataset::AbstractDataset; parallel::Bool=true)
+    build(dataset::AbstractDataset; verbose::Bool=true, parallel::Bool=true)
 
 Builds the complete dataset, downloading any missing files. This function can run in 
 multithreaded mode if the `parallel` argument is set to true.
 """
-function build(dataset::AbstractDataset)
+function build(dataset::AbstractDataset; verbose::Bool=true)
+
+    # get all the file names for the dataset
+    if verbose
+        @info "Building dataset"
+        display(info(dataset))
+    end
     filenames = Set(get_file_list(dataset))
     N = length(filenames)
-    filenames_needed = [
-        filename for filename in filenames if !check_file_existence(dataset, filename)
-    ]
+
+    # get the filenames we don't yet have
+    if verbose
+        @info "Checking which files are already available..."
+        p = Progress(N)
+    end
+    filenames_needed = String[]
+    for filename in filenames
+        if !check_file_existence(dataset, filename)
+            push!(filenames_needed, filename)
+        end
+        verbose && next!(p)
+    end
+
     N_need = length(filenames_needed)
+    if verbose
+        @info "Out of $N total files, $(N - N_need) are available"
+    end
+
+    # loop through and download all the files we're missing
+    successes = [false for fn in filenames_needed]
     if N_need >= 1
-        @info "Out of $N files, $(N - N_need) are available. Downloading the rest..."
-        p = Progress(N_need)
-        for filename in filenames_needed
-            download_file(dataset, filename)
-            next!(p)
+        if verbose
+            @info "Downloading $N_need files..."
+            p = Progress(N_need)
+        end
+        for (i, filename) in enumerate(filenames_needed)
+            successes[i] = download_file(dataset, filename)
+            verbose && next!(p)
         end
     end
+
+    # return the filenames that were NOT returned successfully
+    fn_unsuccessful = [fn for (fn, s) in zip(filenames_needed, successes) if !s]
+    return fn_unsuccessful
 end
