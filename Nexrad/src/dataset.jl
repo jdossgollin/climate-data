@@ -76,12 +76,6 @@ Return the dimensions of the given `NexradDataset`.
 """
 dims(dataset::NexradDataset) = [:time, :longitude, :latitude]
 
-"""
-    bounds(dataset::NexradDataset) -> Dict{Symbol, ClimateDatasets.Bound}
-
-Return the bounds of the given `NexradDataset`.
-"""
-bounds(dataset::NexradDataset) = dataset.bounds
 
 """
     info(dataset::NexradDataset) -> Dict{Symbol,String}
