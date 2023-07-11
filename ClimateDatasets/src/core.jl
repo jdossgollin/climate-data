@@ -135,7 +135,7 @@ file_extension(::AbstractDataset) = error("Not Implemented")
 
 Returns the bounds for each dimension of the data.
 """
-bounds(::AbstractDataset) = error("Not Implemented")
+bounds(ds::AbstractDataset) = getproperty(ds, :bounds)
 
 """
     file_bounds(dataset::AbstractDataset)::Vector{Dict{Symbol, Bound}}
