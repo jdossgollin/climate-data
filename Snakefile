@@ -30,7 +30,8 @@ LOGS = os.path.join(HOMEDIR, "logs")
 
 # include each of the sub-snakefiles
 include: "nexrad/nexrad.smk"
-include: "era5/era5.smk"
+include: "era5/era5.smk"  # Include the GHCNd Snakemake file
+include: "GHCNd/GHCNd.smk"
 
 
 # default rule runs everything
