@@ -1,10 +1,18 @@
+# Define directories for ERA5 data and source files.
+# `ERA5_DATA_DIR` is where the processed data will be stored.
+# `ERA5_SRC_DIR` is the directory containing the source scripts.
 ERA5_DATA_DIR = os.path.join(DATADIR, "ERA5")  # where the data goes
 ERA5_SRC_DIR = os.path.join(HOMEDIR, "era5")  # this folder
 
+
 configfile: os.path.join(ERA5_SRC_DIR, "era5_config.yml")
+
 
 era5_env = os.path.join(ERA5_SRC_DIR, "era5_env.yml")
 
+
+# Rule: Download ERA5 elevation data.
+# This rule downloads the orography data and saves it as a NetCDF file.
 rule era5_elevation:
     input:
         os.path.join(ERA5_SRC_DIR, "download_era5_orography.py"),
@@ -15,9 +23,11 @@ rule era5_elevation:
     conda:
         era5_env
     shell:
-        "python {input} --outfile {output} {params.bounds}"
+        "python {input} --outfile {output}"
 
-# Get any variable on pressure levels
+
+# Rule: Download ERA5 pressure level data.
+# This rule handles downloading variables on specific pressure levels.
 rule era5_pressure:
     input:
         os.path.join(ERA5_SRC_DIR, "download_era5_pressure.py"),
@@ -30,7 +40,9 @@ rule era5_pressure:
     shell:
         "python {input} --outfile {output} --variable {wildcards.variable} --pressure {wildcards.pressure} --year {wildcards.year}"
 
-# Get any variable on a single level
+
+# Rule: Download ERA5 single level data.
+# This rule handles downloading variables on a single level.
 rule era5_single_level:
     input:
         os.path.join(ERA5_SRC_DIR, "download_era5_single_level.py"),
@@ -42,6 +54,7 @@ rule era5_single_level:
         era5_env
     shell:
         "python {input} --outfile {output} --variable {wildcards.variable} --year {wildcards.year}"
+
 
 # Get all the ERA5 data
 era5_years = range(config["era5"]["first_year"], config["era5"]["last_year"] + 1)
@@ -57,7 +70,9 @@ for year in era5_years:
         levels = var["levels"]
         for level in levels:
             pressure_files.append(
-                os.path.join(ERA5_DATA_DIR, "pressure_level", f"{varname}_{level}_{year}.nc")
+                os.path.join(
+                    ERA5_DATA_DIR, "pressure_level", f"{varname}_{level}_{year}.nc"
+                )
             )
 
 # Add single level files
@@ -69,10 +84,11 @@ for year in era5_years:
 
 # Explicitly list the files to download
 elevation_file = [os.path.join(ERA5_DATA_DIR, "single_level", "elevation.nc")]
-all_reanalysis_files = elevation_file + pressure_files + single_level_files
+all_era5_files = elevation_file + pressure_files + single_level_files
 
-# The rule to download all the ERA5 data
+
+# The rule to download all the ERA5 data.
+# This combines elevation, pressure level, and single level data downloads.
 rule ERA5:
     input:
-        #all_reanalysis_files,
-        single_level_files[0:1]
+        all_era5_files[1],  # List of all files to be downloaded

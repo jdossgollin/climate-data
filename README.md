@@ -1,151 +1,93 @@
-# Doss-Gollin Lab Climate Data Repository
+# Climate Data Repository
 
-This is a **work in progress**!
-Use this software **with caution**!
-If you find it helpful please usie the `Issues` tab to identify problems or suggest improvements (there are already several things there)!
+Welcome to our Climate Data Repository! This repository is actively maintained to download, process, and manage our internal climate data database. While it is designed for our internal use, it is public so others can reproduce our datasets or extract specific data they need. If you add new datasets, we encourage you to submit a pull request to share your contributions with the community.
 
-## Overview
+## Available Datasets
 
-This repository contains code needed to access weather and climate data commonly re-used in the Doss-Gollin lab.
-None of the actual data is contained in this repository!
-Instead, it is downloaded from various external sources and then stored on the Rice Research Data Facility.
-Use of this facility is not free, so we should only store the datasets that we expect to use frequently.
-If you have questions, contact James.
+This repository provides access to the following datasets:
 
-All data is stored as NetCDF4 files for easy use with the user-friendly, accessible, and standard [Pangeo](https://pangeo.io/) ecosystem.
+1. **NEXRAD Radar Precipitation Data**: Radar-based precipitation data over the continental United States.
+2. **ERA5 Reanalysis Data**: High-resolution reanalysis data, including:
+   - Pressure-level variables (e.g., wind components at 500 hPa).
+   - Single-level variables (e.g., 2m temperature).
+   - Orography (elevation data).
+3. **GHCNd Daily Summaries**: Global Historical Climatology Network daily summaries, including station metadata and documentation.
 
-## Accessing the data
+We are open to adding more datasets in the future. If you have suggestions, feel free to contribute!
 
-You don't need to use the codes in this repository to access the data.
-The data is stored on James's RDF account.
-See the lab manual on Notion for details of accessing the data.
+## Running the Code
 
-Our philosophy is to avoid storing too much data on a single file.
-To deal with datasets spread across many files, we suggest to leverage the `open_mfdataset` functionality in `xarray`.
+### Prerequisites
 
-### What Datasets are Included?
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-repo/climate-data.git
+   cd climate-data
+   ```
 
-1. Radar precipitation data over the continental United States. For more details, see [the README](./nexrad/README.md).
-1. ERA5 reanalysis data over the continental United States at 0.25 degree resolution. For more details, see [the README](./era5/README.md). Specifically, we have the following variables:
-    * meridional and zonal wind at 500 hPa
-    * surface air temperature
-    * elevation (time-invariant, called geopotential)
-    * vertical integral of meridional and zonal water vapor flux
+2. **Install the Conda Environment**:
+   ```bash
+   conda env create -f environment.yml
+   conda activate climate-data
+   ```
 
-## Developing this dataset
+### Updating Datasets
 
-If you want to change the files we track or edit this repository, then this section is for you.
-This repository uses [Snakemake](https://snakemake.readthedocs.io/) to define and specify dependencies and workflows.
-If you've never used Snakemake before, you should read up on it.
+To update the datasets without adding new ones, run the following command:
 
-We also use conda to manage dependencies.
-This includes using conda to specify the dependencies for each workflow rule, making the workflow more concise and reproducible.
-If you run into problems please use the `Issues` tab on GitHub to bring them to our attention.
-
-### Installation
-
-You will need [`conda`](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed (or [`mamba`](https://anaconda.org/conda-forge/mamba) for maximum performance).
-Then open a terminal and run the following lines
-
-```shell
-conda env create --file environment.yml # creates the environment
-conda activate climatedata # activates the environment
+```bash
+snakemake --use-conda --cores all
 ```
 
-All other required dependencies are described using Snakemake and anaconda environments (see [Snakemake docs](https://snakemake.readthedocs.io/)).
+For long-running processes, especially on remote machines, use:
 
-### Adjust the path
-
-The location where data will be stored is defined in `config.yaml` under the `datadir` argument.
-This should point to the location where the RDF is mounted.
-To mount the RDF locally, follow the directions [here](https://kb.rice.edu/page.php?id=108256).
-If you follow the default settings, you shouldn't need to adjust the path specified in `config.yaml`.
-
-If you are mounting on Linux, be aware that you need to change the `uid` argument.
-For example the command
-
-```shell
-sudo mount.cifs -o username=jd82,domain=ADRICE,mfsymlinks,rw,vers=3.0,sign,uid=jd82 //smb.rdf.rice.edu/research $HOME/RDF
+```bash
+nohup snakemake all --use-conda --cores all --rerun-incomplete --keep-going &
 ```
 
-will mount the RDF to `$HOME/RDF` for user `jd82`.
-If you copy and paste, be aware that this documentation doesn't make very clear that you need to change the `uid` as well as the `username`.
-As another example, if your username is `js336`, then you would run the following command to mount the RDF to the `$HOME/RDF` directory:
+#### Explanation of Flags:
+- `nohup`: Keeps the process running even if the SSH connection closes.
+- `--use-conda`: Ensures the correct Conda environment is used for each rule.
+- `--cores all`: Utilizes all available CPU cores.
+- `--rerun-incomplete`: Retries incomplete jobs to avoid errors.
+- `--keep-going`: Continues running other jobs even if some fail.
 
-```shell
-sudo mount.cifs -o username=js336,domain=ADRICE,mfsymlinks,rw,vers=3.0,sign,uid=js336 //smb.rdf.rice.edu/research $HOME/RDF
+### Specific Instructions for Rice RDF
+
+If you are working on the Rice Research Data Facility (RDF), ensure the `datadir` in `config.yaml` points to the mounted RDF directory. For example:
+
+```yaml
+datadir:
+  linux: /path/to/mounted/rdf
 ```
 
-### Running codes
+To mount the RDF on Linux, use the following command:
 
-To update the entire dataset, run something like
-
-```shell
-snakemake  --use-conda --cores SOME_NUMBER
+```bash
+sudo mount.cifs -o username=<your_username>,domain=ADRICE,mfsymlinks,rw,vers=3.0,sign,uid=<your_username> //smb.rdf.rice.edu/research $HOME/RDF
 ```
 
-where `SOME_NUMBER` is the number of cores you want to use (e.g., `--cores all`).
-There are many additional arguments you can pass -- see [Snakemake docs](https://snakemake.readthedocs.io/).
+Replace `<your_username>` with your actual username. Ensure the `uid` matches your username.
 
-### Prototyping
+## Developer Guide
 
-It takes Snakemake a long time to build the DAG.
-When you're just rapidly prototyping things, this lag time is annoying.
-To speed up, you can batch files like this:
+We welcome contributions to this repository! Here are some guidelines for developers:
 
-```shell
-nohup snakemake /home/jd82/RDF/jd82/NEXRAD/2020-11.nc --use-conda --cores all --rerun-incomplete &
-```
+### Docstring Style
 
-See [dealing with very large workflows](https://snakemake.readthedocs.io/en/stable/executing/cli.html#dealing-with-very-large-workflows) for more details.
+Use [Google-style docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for all Python functions and classes.
+This ensures clarity and consistency.
 
-### Sensible default
+### Code Formatting
 
-If you just want to build the dataset, a good default command to use is
+- Use `black` for code formatting.
+- Use `snakefmt` for formatting Snakemake files.
 
-```shell
-nohup snakemake all --use-conda --cores all  --rerun-incomplete --keep-going
-```
+### Submitting Changes
 
-Note:
+1. Fork the repository and create a new branch for your changes.
+2. Ensure all tests pass and the code is properly formatted.
+3. Submit a pull request with a clear description of your changes.
 
-* `nohup`: Keep running on a remote machine via `ssh`, even if the connection closes (see [`nohup`](https://www.computerhope.com/unix/unohup.htm) docs).
-* `use_conda`: use anaconda for environments
-* `--cores all`: use all cores (workstation has 12)
-* `--rerun-incomplete`: reduces errors if a job was canceled earlier
-* `--keep-going`: if a file causes an error, don't give up
+We look forward to your contributions!
 
-If you are on a different machine you can learn about how many cores are available with the `lscpu` command.
-
-In a nutshell, this will keep the process running even after you close your `ssh` session.
-
-### Linters
-
-Linters should run automatically if you are using VS Code with relevant extensions installed.
-Before submitting a pull request, please `activate nexrad` and then
-
-* `snakefmt .` to reformat the Snakefile
-* `black .` to reformat the code
-* `mypy . --ignore-missing-imports` to run type checks on the code. This is a good way to catch bugs.
-
-Additionally, if you're messing with `Snakefile` then `snakemake --lint` is a helpful resource with good suggestions.
-
-We are working to get these to run automatically using GitHub workflows.
-See [this issue](https://github.com/dossgollin-lab/nexrad-xarray/issues/5) and help out if you're goot at GitHub Actions.
-
-### Pro tips
-
-I am terrible at shell stuff so here are some handy commands
-
-After running Snakemake, you may get some time steps that throw an error.
-Snakemake will generate a log file for you with something that looks like
-
-```shell
-Complete log: .snakemake/log/2022-10-11T071442.418042.snakemake.log
-```
-
-To parse this log file to get all the dates that threw errors, something like this will work:
-
-```shell
-grep "output:" PATH_TO_LOG_FILE | cut -c69- | sort | uniq > lines.log
-```

@@ -22,17 +22,24 @@ import argparse
 import cdsapi
 import numpy as np
 
+
 def download_era5_single_level(
     year: int,
     variable: str,
     outfile: str,
 ) -> None:
     """Download a single level of ERA5 data for a given year and variable.
-    
+
     Args:
-        year: The year to download data for
-        variable: The ERA5 variable name
-        outfile: Path to save the downloaded data
+        year (int): The year to download data for.
+        variable (str): The ERA5 variable name.
+        outfile (str): Path to save the downloaded data.
+
+    Returns:
+        None
+
+    Example:
+        download_era5_single_level(2020, "2m_temperature", "/path/to/output.nc")
     """
     dataset = "reanalysis-era5-single-levels"
     product_type = "reanalysis"
@@ -48,21 +55,29 @@ def download_era5_single_level(
         "day": days,
         "time": hours,
         "data_format": "netcdf",
+        "download_format": "unarchived",
     }
 
     c = cdsapi.Client()
     r = c.retrieve(dataset, request)
     r.download(outfile)
 
+
 if __name__ == "__main__":
-    # parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--outfile", type=str)
-    parser.add_argument("--variable", type=str)
-    parser.add_argument("--year", type=int)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Download ERA5 single level data.")
+    parser.add_argument(
+        "-o", "--outfile", type=str, required=True, help="Output file path."
+    )
+    parser.add_argument(
+        "--variable", type=str, required=True, help="ERA5 variable name."
+    )
+    parser.add_argument(
+        "--year", type=int, required=True, help="Year to download data for."
+    )
     args = parser.parse_args()
 
-    # call the function
+    # Call the function
     download_era5_single_level(
         year=args.year,
         variable=args.variable,

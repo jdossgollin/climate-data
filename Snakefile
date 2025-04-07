@@ -6,6 +6,9 @@ import os
 # CONFIGURE DATA / FILE STORAGE LOCATIONS
 ################################################################################
 
+# This section sets up paths for data storage based on the operating system.
+# The `DATADIR` variable points to the appropriate directory for storing data.
+
 
 configfile: "config.yaml"
 
@@ -28,14 +31,16 @@ else:
 LOGS = os.path.join(HOMEDIR, "logs")
 
 
-# include each of the sub-snakefiles
+# Include sub-Snakefiles for modular workflow management.
+# Each sub-Snakefile handles a specific dataset or workflow.
 include: "nexrad/nexrad.smk"
-include: "era5/era5.smk"  # Include the GHCNd Snakemake file
-include: "GHCNd/GHCNd.smk"
+include: "era5/era5.smk"  # Include the ERA5 Snakemake file
+include: "GHCNd/GHCNd.smk"  # Include the GHCNd Snakemake file
 
 
-# default rule runs everything
+# Default rule to run all workflows.
 rule all:
     input:
-        all_nexrad_grib2_files,
-        all_reanalysis_files,
+        all_nexrad_grib2_files,  # Input files for NEXRAD workflow
+        all_era5_files,  # Input files for ERA5 workflow
+        all_ghcnd_files,  # Input files for GHCNd workflow
