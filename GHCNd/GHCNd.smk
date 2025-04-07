@@ -30,7 +30,7 @@ rule download_ghcnd_docs:
 # Rule to unzip the .tar.gz file
 rule unzip_ghcnd:
     input:
-        temp(os.path.join(GHCND_DATA_DIR, "daily-summaries-latest.tar.gz")),
+        os.path.join(GHCND_DATA_DIR, "daily-summaries-latest.tar.gz")
     output:
         directory(os.path.join(GHCND_DATA_DIR, "daily-summaries")),
     shell:
