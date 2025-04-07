@@ -1,10 +1,9 @@
 """
-This script will download ONE YEAR OF ERA5 HOURLY REANALYSIS DATA over the given domain
-(defaults to CONUS). Storing one year of data in one file makes it easier to work with
+This script will download ONE YEAR OF ERA5 HOURLY REANALYSIS DATA.
+Storing one year of data in one file makes it easier to work with
 and more resilient to errors in downloading.
 
-You need to specify the year, the output file name, the variable, and the pressure level.
-Optionally, specify the domain. The default domain is CONUS.
+You need to specify the year, the output file name, and the variable.
 
 The variable should follow the ERA5 documentation. Some common ones: 
 - 2m_temperature
@@ -20,54 +19,52 @@ cdsapi documentation: https://cds.climate.copernicus.eu/api-how-to
 """
 
 import argparse
-
 import cdsapi
 import numpy as np
 
-# the default domain corresponds to CONUS
-CONUS = [(-125, -65), (25, 50)]
-
-
-def main() -> None:
-    """Run everything"""
-
-    # parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--outfile", type=str)
-    parser.add_argument("--variable", type=str)
-    parser.add_argument("--year", type=int)
-    parser.add_argument("--resolution", type=float)
-    parser.add_argument("--lonmin", type=float, default=CONUS[0][0])
-    parser.add_argument("--lonmax", type=float, default=CONUS[0][1])
-    parser.add_argument("--latmin", type=float, default=CONUS[1][0])
-    parser.add_argument("--latmax", type=float, default=CONUS[1][1])
-    args = parser.parse_args()
-
+def download_era5_single_level(
+    year: int,
+    variable: str,
+    outfile: str,
+) -> None:
+    """Download a single level of ERA5 data for a given year and variable.
+    
+    Args:
+        year: The year to download data for
+        variable: The ERA5 variable name
+        outfile: Path to save the downloaded data
+    """
     dataset = "reanalysis-era5-single-levels"
     product_type = "reanalysis"
     months = [f"{month:02d}" for month in range(1, 13)]  # 01, 02, ..., 12
     days = [f"{day}" for day in np.arange(1, 32)]  # 1, 2, ..., 31
     hours = [f"{hour:02d}:00" for hour in range(24)]  # 00:00, 01:00, ... 23:00
-    bbox = [args.latmax, args.lonmin, args.latmin, args.lonmax]
-    grid = [args.resolution, args.resolution]
 
-    ecmwf_client = cdsapi.Client()
-    ecmwf_client.retrieve(
-        dataset,
-        {
-            "product_type": product_type,
-            "format": "netcdf",
-            "variable": args.variable,
-            "year": [args.year],
-            "month": months,
-            "day": days,
-            "time": hours,
-            "area": bbox,
-            "grid": grid,
-        },
-        args.outfile,
-    )
+    request = {
+        "product_type": product_type,
+        "variable": variable,
+        "year": [year],
+        "month": months,
+        "day": days,
+        "time": hours,
+        "data_format": "netcdf",
+    }
 
+    c = cdsapi.Client()
+    r = c.retrieve(dataset, request)
+    r.download(outfile)
 
 if __name__ == "__main__":
-    main()
+    # parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-o", "--outfile", type=str)
+    parser.add_argument("--variable", type=str)
+    parser.add_argument("--year", type=int)
+    args = parser.parse_args()
+
+    # call the function
+    download_era5_single_level(
+        year=args.year,
+        variable=args.variable,
+        outfile=args.outfile,
+    )

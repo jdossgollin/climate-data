@@ -1,12 +1,7 @@
 # some parameters to control the ERA5 reanalysis data
 era5:
-  lonmin: -125
-  lonmax: -65
-  latmin: 25
-  latmax: 50
-  resolution: 0.25
   first_year: 1940
-  last_year: 2022
+  last_year: 2024
   vars:
     pressure_level:
         - name: u_component_of_wind
@@ -19,3 +14,11 @@ era5:
       - vertical_integral_of_eastward_water_vapour_flux
       - vertical_integral_of_northward_water_vapour_flux
       - 2m_temperature
+
+bbox:
+  - name: "CONUS"
+    lon_min: -125
+    lon_max: -65
+    lat_min: 25
+    lat_max: 50
+    resolution: 0.25

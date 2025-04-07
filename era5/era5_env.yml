@@ -2,5 +2,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - cdsapi # ECMWF interface
+  - cdsapi>=0.7.4 # ECMWF interface
   - netcdf4 # Wrapper for netcdf4
+  - numpy # Scientific computing
