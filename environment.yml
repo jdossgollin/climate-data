@@ -10,7 +10,9 @@ channels:
 dependencies:
   - python>=3.11
   - black # clean code and make it pretty
+  - cdsapi
   - cfgrib # read grib files
+  - conda # package manager
   - dask # parallel processing
   - ipython # for interactive exploring
   - jupyter # for notebooks
